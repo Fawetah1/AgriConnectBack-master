@@ -1,5 +1,7 @@
 package com.example.usermanagementbackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,18 +20,20 @@ public class Facture {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "commande_id")
+    @ManyToOne(fetch = FetchType.LAZY)    @JoinColumn(name = "commande_id")
     private Commande commande;
 
     private Double montantTotal;
     private LocalDate dateFacture;
     private String numeroFacture;
 
-    @ManyToOne
-    @JoinColumn(name = "client_id")
-    private Client client;
-
-    @OneToMany(mappedBy = "facture", cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"commandes", "factures"})
+    private User user;
+@JsonIgnore
+    @OneToMany(mappedBy = "facture", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LigneFacture> lignesFacture;
+
+
 }

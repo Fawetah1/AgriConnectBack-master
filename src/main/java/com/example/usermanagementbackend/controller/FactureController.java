@@ -36,6 +36,18 @@ public class FactureController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/by-transaction/{transactionId}")
+    public ResponseEntity<List<Facture>> getFactureByTransactionId(@PathVariable Long transactionId) {
+        if (transactionId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        List<Facture> factures = factureService.getFactureByTransactionId(transactionId);
+        if (factures.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(factures);
+    }
+
     @PostMapping
     public ResponseEntity<Facture> createFacture(@RequestBody Facture facture) {
         try {
@@ -73,10 +85,10 @@ public class FactureController {
             return ResponseEntity.notFound().build();
         }
         try {
-            Path pdfPath = Paths.get("invoice_" + id + ".pdf");
+            Path pdfPath = Paths.get("invoices/invoice_" + id + ".pdf");
             if (!Files.exists(pdfPath)) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("PDF not found for facture ID: ".getBytes());
+                        .body(("PDF not found for facture ID: " + id).getBytes());
             }
             byte[] pdfBytes = Files.readAllBytes(pdfPath);
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();

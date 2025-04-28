@@ -1,5 +1,7 @@
 package com.example.usermanagementbackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,8 +17,11 @@ public class LigneFacture {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facture_id")
+    @JsonBackReference
+
+
     private Facture facture;
 
     @ManyToOne

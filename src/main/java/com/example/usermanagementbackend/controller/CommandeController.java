@@ -1,77 +1,131 @@
 package com.example.usermanagementbackend.controller;
 
-import com.example.usermanagementbackend.entity.Commande;
-import com.example.usermanagementbackend.service.CommandeService;
-import org.springframework.http.HttpStatus;
+import com.example.usermanagementbackend.dto.CommandeDTO;
+import com.example.usermanagementbackend.dto.LivreurDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/commandes")
+@CrossOrigin(origins = "http://localhost:4200")
+@RequiredArgsConstructor
 public class CommandeController {
 
-    private final CommandeService commandeService;
-
-    public CommandeController(CommandeService commandeService) {
-        this.commandeService = commandeService;
-    }
+    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping
-    public ResponseEntity<List<Commande>> getAllCommandes() {
-        return ResponseEntity.ok(commandeService.getAllCommandes());
+    public ResponseEntity<List<CommandeDTO>> getAllCommandes() {
+        try {
+            List<CommandeDTO> commandes = jdbcTemplate.query(
+                    "SELECT c.id, c.client_nom, c.statut, c.address, c.telephone, c.livreur_id, " +
+                            "lvr.nom as livreur_nom, lvr.email as livreur_email, lvr.telephone as livreur_telephone, lvr.user_id as livreur_user_id " +
+                            "FROM commandes c " +
+                            "LEFT JOIN livreurs lvr ON c.livreur_id = lvr.id",
+                    (rs, rowNum) -> {
+                        CommandeDTO cmd = new CommandeDTO(
+                                rs.getLong("id"),
+                                rs.getString("client_nom"),
+                                rs.getString("statut"),
+                                rs.getString("address"),
+                                rs.getString("telephone")
+                        );
+                        cmd.setLivreurId(rs.getLong("livreur_id"));
+                        if (!rs.wasNull()) {
+                            LivreurDTO livreur = new LivreurDTO();
+                            livreur.setId(rs.getLong("livreur_id"));
+                            livreur.setNom(rs.getString("livreur_nom"));
+                            livreur.setEmail(rs.getString("livreur_email"));
+                            livreur.setTelephone(rs.getString("livreur_telephone"));
+                            livreur.setUserId(rs.getLong("livreur_user_id"));
+                            cmd.setLivreur(livreur);
+                        }
+                        return cmd;
+                    }
+            );
+            return ResponseEntity.ok(commandes);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching commandes", e);
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Commande> getCommandeById(@PathVariable Long id) {
-        Optional<Commande> commande = commandeService.getCommandeById(id);
-        return commande.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<Commande>> getCommandesByStatus(@PathVariable Commande.OrderStatus status) {
-        return ResponseEntity.ok(commandeService.getCommandesByStatus(status));
-    }
-
-    @GetMapping("/date-range")
-    public ResponseEntity<List<Commande>> getCommandesByDateRange(
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate
-    ) {
-        return ResponseEntity.ok(commandeService.getCommandesByDateRange(startDate, endDate));
+    public ResponseEntity<CommandeDTO> getCommandeById(@PathVariable Long id) {
+        try {
+            CommandeDTO cmd = jdbcTemplate.queryForObject(
+                    "SELECT c.id, c.client_nom, c.statut, c.address, c.telephone, c.livreur_id, " +
+                            "lvr.nom as livreur_nom, lvr.email as livreur_email, lvr.telephone as livreur_telephone, lvr.user_id as livreur_user_id " +
+                            "FROM commandes c " +
+                            "LEFT JOIN livreurs lvr ON c.livreur_id = lvr.id " +
+                            "WHERE c.id = ?",
+                    (rs, rowNum) -> {
+                        CommandeDTO commandeDTO = new CommandeDTO(
+                                rs.getLong("id"),
+                                rs.getString("client_nom"),
+                                rs.getString("statut"),
+                                rs.getString("address"),
+                                rs.getString("telephone")
+                        );
+                        commandeDTO.setLivreurId(rs.getLong("livreur_id"));
+                        if (!rs.wasNull()) {
+                            LivreurDTO livreur = new LivreurDTO();
+                            livreur.setId(rs.getLong("livreur_id"));
+                            livreur.setNom(rs.getString("livreur_nom"));
+                            livreur.setEmail(rs.getString("livreur_email"));
+                            livreur.setTelephone(rs.getString("livreur_telephone"));
+                            livreur.setUserId(rs.getLong("livreur_user_id"));
+                            commandeDTO.setLivreur(livreur);
+                        }
+                        return commandeDTO;
+                    },
+                    id
+            );
+            return ResponseEntity.ok(cmd);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Commande not found with id: " + id);
+        }
     }
 
     @PostMapping
-    public ResponseEntity<Commande> createCommande(@RequestBody Commande commande) {
+    public ResponseEntity<CommandeDTO> createCommande(@RequestBody CommandeDTO commandeDTO) {
         try {
-            Commande savedCommande = commandeService.saveCommande(commande);
-            return new ResponseEntity<>(savedCommande, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            jdbcTemplate.update(
+                    "INSERT INTO commandes (client_nom, statut, address, telephone, livreur_id) VALUES (?, ?, ?, ?, ?)",
+                    commandeDTO.getClientNom(),
+                    commandeDTO.getStatut() != null ? commandeDTO.getStatut() : "PENDING",
+                    commandeDTO.getAddress(),
+                    commandeDTO.getTelephone(),
+                    commandeDTO.getLivreurId()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(commandeDTO);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error creating commande", e);
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Commande> updateCommande(@PathVariable Long id, @RequestBody Commande commande) {
+    public ResponseEntity<CommandeDTO> updateCommande(@PathVariable Long id, @RequestBody CommandeDTO commandeDTO) {
         try {
-            Commande updatedCommande = commandeService.updateCommande(id, commande);
-            return ResponseEntity.ok(updatedCommande);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCommande(@PathVariable Long id) {
-        try {
-            commandeService.deleteCommande(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            int rowsAffected = jdbcTemplate.update(
+                    "UPDATE commandes SET client_nom = ?, statut = ?, address = ?, telephone = ?, livreur_id = ? WHERE id = ?",
+                    commandeDTO.getClientNom(),
+                    commandeDTO.getStatut(),
+                    commandeDTO.getAddress(),
+                    commandeDTO.getTelephone(),
+                    commandeDTO.getLivreurId(),
+                    id
+            );
+            if (rowsAffected == 0) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Commande not found with id: " + id);
+            }
+            return ResponseEntity.ok(commandeDTO);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error updating commande", e);
         }
     }
 }

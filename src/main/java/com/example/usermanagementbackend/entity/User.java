@@ -1,7 +1,18 @@
 package com.example.usermanagementbackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Setter
+@Getter
 @Entity
 @Table(name = "users")
 public class User {
@@ -17,6 +28,24 @@ public class User {
     private String numeroDeTelephone;
     private String role;
     private String adresseLivraison;
+    private boolean isBlocked = false;
+    private String verificationCode;
+    private boolean verified = false;
+    private String resetCode;
+    private LocalDateTime derniereConnexion;
+    private int nombreConnexions;
+    private int actionsEffectuees = 0;
+    private int nombreBlocages = 0;
+    private Double creditLimit;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @JsonIgnoreProperties("user") // Prevent circular reference
+    private List<Commande> commandes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Produit> produits = new ArrayList<>();
 
     public User() {}
 
@@ -28,22 +57,25 @@ public class User {
         this.numeroDeTelephone = numeroDeTelephone;
         this.role = role;
         this.adresseLivraison = adresseLivraison;
+        this.creditLimit = creditLimit;
     }
-
-    // Getters and setters
 
     public Long getId() {
         return id;
     }
-
     public void setId(Long id) {
         this.id = id;
+    }
+    public Double getCreditLimit() {
+        return creditLimit;
+    }
+    public void setCreditLimit(Double creditLimit) {
+        this.creditLimit = creditLimit;
     }
 
     public String getNom() {
         return nom;
     }
-
     public void setNom(String nom) {
         this.nom = nom;
     }
@@ -51,7 +83,6 @@ public class User {
     public String getPrenom() {
         return prenom;
     }
-
     public void setPrenom(String prenom) {
         this.prenom = prenom;
     }
@@ -59,7 +90,6 @@ public class User {
     public String getEmail() {
         return email;
     }
-
     public void setEmail(String email) {
         this.email = email;
     }
@@ -67,7 +97,6 @@ public class User {
     public String getMotDePasse() {
         return motDePasse;
     }
-
     public void setMotDePasse(String motDePasse) {
         this.motDePasse = motDePasse;
     }
@@ -75,7 +104,6 @@ public class User {
     public String getNumeroDeTelephone() {
         return numeroDeTelephone;
     }
-
     public void setNumeroDeTelephone(String numeroDeTelephone) {
         this.numeroDeTelephone = numeroDeTelephone;
     }
@@ -83,7 +111,6 @@ public class User {
     public String getRole() {
         return role;
     }
-
     public void setRole(String role) {
         this.role = role;
     }
@@ -91,8 +118,78 @@ public class User {
     public String getAdresseLivraison() {
         return adresseLivraison;
     }
-
     public void setAdresseLivraison(String adresseLivraison) {
         this.adresseLivraison = adresseLivraison;
+    }
+
+    @JsonProperty("isBlocked")
+    public boolean isBlocked() {
+        return isBlocked;
+    }
+
+    public void setIsBlocked(boolean isBlocked) {
+        this.isBlocked = isBlocked;
+    }
+
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
+    public String getResetCode() {
+        return resetCode;
+    }
+
+    public void setResetCode(String resetCode) {
+        this.resetCode = resetCode;
+    }
+
+    public LocalDateTime getDerniereConnexion() {
+        return derniereConnexion;
+    }
+
+    public void setDerniereConnexion(LocalDateTime derniereConnexion) {
+        this.derniereConnexion = derniereConnexion;
+    }
+
+    public int getNombreConnexions() {
+        return nombreConnexions;
+    }
+
+    public void setNombreConnexions(int nombreConnexions) {
+        this.nombreConnexions = nombreConnexions;
+    }
+
+    public int getActionsEffectuees() {
+        return actionsEffectuees;
+    }
+
+    public void setActionsEffectuees(int actionsEffectuees) {
+        this.actionsEffectuees = actionsEffectuees;
+    }
+    public void incrementerActions() {
+        this.actionsEffectuees++;
+    }
+    public int getNombreBlocages() {
+        return nombreBlocages;
+    }
+
+    public void setNombreBlocages(int nombreBlocages) {
+        this.nombreBlocages = nombreBlocages;
+    }
+
+    public void incrementerBlocages() {
+        this.nombreBlocages++;
     }
 }

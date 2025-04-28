@@ -15,7 +15,7 @@ public class LigneFactureService {
     }
 
     public List<LigneFacture> getLignesFactureByFactureId(Long factureId) {
-        return ligneFactureRepository.findByFactureId(factureId);
+        return ligneFactureRepository.findByFactureIdWithProduit(factureId); // Updated to use the correct method
     }
 
     public LigneFacture saveLigneFacture(LigneFacture ligneFacture) {
